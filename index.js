@@ -9,18 +9,30 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json()); // 添加編碼為JSON的請求消息體
 app.use(bodyParser.urlencoded({extended: true})); // 添加編碼為表單的請求消息體
 
+app.use(
+    '/css/bootstrap.css',
+    express.static('node_modules/bootstrap/dist/css/bootstrap.css')
+); // 引入外部文件
+
 app.get('/articles', (req,res,next)=>{
     Article.all((err, articles)=>{
         if (err) return next(err);
-        res.send(articles);
+        res.format({
+            html: ()=>{
+                res.render('articles.ejs', {articles: articles});
+            },
+            json: ()=>{
+                res.send(articles);
+            }
+        });
     });
 });
 
 app.get('/articles/:id', (req,res,next)=>{
     const id = req.params.id;
-    Article.find(id, (err, article)=>{
+    Article.find(id, (err, articles)=>{
         if (err) return next(err);
-        res.send(articles[id]);
+        res.send(articles.content);
     })
     
 });
@@ -39,7 +51,7 @@ app.post('/articles', (req, res, next)=>{
     read(url, (err, result)=>{
         if (err || !result) res.status(500).send('Error downloading article');
         Article.create(
-            {title: result.title, content: result.content},
+            {url: url, title: result.title, content: result.content},
             (err, article)=>{
                 if (err) return next(err);
                 res.send('ok');
