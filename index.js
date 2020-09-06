@@ -1,3 +1,4 @@
+const read = require('node-readability');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser'); // 添加消息解析器
@@ -9,24 +10,42 @@ app.use(bodyParser.json()); // 添加編碼為JSON的請求消息體
 app.use(bodyParser.urlencoded({extended: true})); // 添加編碼為表單的請求消息體
 
 app.get('/articles', (req,res,next)=>{
-    res.send(articles);
-});
-
-app.post('/articles', (req,res,next)=>{
-    res.send('ok');
+    Article.all((err, articles)=>{
+        if (err) return next(err);
+        res.send(articles);
+    });
 });
 
 app.get('/articles/:id', (req,res,next)=>{
     const id = req.params.id;
-    console.log('Fetching:',id);
-    res.send(articles[id]);
+    Article.find(id, (err, article)=>{
+        if (err) return next(err);
+        res.send(articles[id]);
+    })
+    
 });
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 app.delete('/articles/:id', (req,res,next)=>{
     const id = req.params.id;
-    console.log('Deleting:',id);
-    delete articles[id];
-    res.send({message: 'Deleted'});
+    Article.delete(id, (err)=>{
+        if (err) return next(err);
+        res.send({message: 'Deleted'});
+    });
+});
+
+app.post('/articles', (req, res, next)=>{
+    const url = req.body.url;
+
+    read(url, (err, result)=>{
+        if (err || !result) res.status(500).send('Error downloading article');
+        Article.create(
+            {title: result.title, content: result.content},
+            (err, article)=>{
+                if (err) return next(err);
+                res.send('ok');
+            }
+        );
+    });
 });
 
 app.listen(port,()=>{
